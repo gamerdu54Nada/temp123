@@ -1,6 +1,6 @@
 import { useState } from 'react'
-import { createUserWithEmailAndPassword } from 'firebase/auth'
-import { auth } from '../firebase'
+import { supabase } from '@/integrations/supabase/client'
+import { lovable } from '@/integrations/lovable/index'
 import { useNavigate } from 'react-router-dom'
 
 function Register() {
@@ -8,6 +8,7 @@ function Register() {
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
   const navigate = useNavigate()
 
   const handleRegister = async (e) => {
@@ -16,12 +17,31 @@ function Register() {
       setError('Passwords do not match')
       return
     }
+    setLoading(true)
+    setError('')
     try {
-      await createUserWithEmailAndPassword(auth, email, password)
+      const { error } = await supabase.auth.signUp({ email, password })
+      if (error) throw error
       navigate('/dashboard')
     } catch (error) {
       setError(error.message)
+    } finally {
+      setLoading(false)
     }
+  }
+
+  const handleGoogleLogin = async () => {
+    const { error } = await lovable.auth.signInWithOAuth('google', {
+      redirect_uri: window.location.origin,
+    })
+    if (error) setError(error.message)
+  }
+
+  const handleAppleLogin = async () => {
+    const { error } = await lovable.auth.signInWithOAuth('apple', {
+      redirect_uri: window.location.origin,
+    })
+    if (error) setError(error.message)
   }
 
   return (
@@ -51,8 +71,14 @@ function Register() {
             onChange={(e) => setConfirmPassword(e.target.value)}
             required
           />
-          <button type="submit">Register</button>
+          <button type="submit" disabled={loading}>
+            {loading ? 'Registering...' : 'Register'}
+          </button>
         </form>
+        <div className="social-login">
+          <button onClick={handleGoogleLogin} className="google-btn">Sign up with Google</button>
+          <button onClick={handleAppleLogin} className="apple-btn">Sign up with Apple</button>
+        </div>
         <p>Already have an account? <a href="/login">Login</a></p>
       </div>
     </div>
