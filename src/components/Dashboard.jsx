@@ -1,7 +1,5 @@
 import { useState, useEffect } from 'react'
-import { doc, setDoc, getDoc } from 'firebase/firestore'
-import { db, auth } from '../firebase'
-import { signOut } from 'firebase/auth'
+import { supabase } from '@/integrations/supabase/client'
 import { useNavigate } from 'react-router-dom'
 
 function Dashboard() {
@@ -15,7 +13,6 @@ function Dashboard() {
     const storedKey = localStorage.getItem('apiKey')
     if (storedKey) {
       setApiKey(storedKey)
-      loadData(storedKey)
     }
   }, [])
 
@@ -26,21 +23,7 @@ function Dashboard() {
     setData({})
   }
 
-  const loadData = async (key) => {
-    try {
-      const docRef = doc(db, 'users', key)
-      const docSnap = await getDoc(docRef)
-      if (docSnap.exists()) {
-        setData(docSnap.data())
-      } else {
-        setData({})
-      }
-    } catch (error) {
-      console.error('Error loading data:', error)
-    }
-  }
-
-  const saveData = async () => {
+  const saveData = () => {
     if (!apiKey) {
       alert('Generate an API key first')
       return
@@ -49,35 +32,20 @@ function Dashboard() {
       alert('Enter key and value')
       return
     }
-    const newData = { ...data, [key]: value }
-    setData(newData)
-    try {
-      await setDoc(doc(db, 'users', apiKey), newData)
-    } catch (error) {
-      console.error('Error saving data:', error)
-    }
+    setData(prev => ({ ...prev, [key]: value }))
     setKey('')
     setValue('')
   }
 
-  const deleteData = async (k) => {
+  const deleteData = (k) => {
     const newData = { ...data }
     delete newData[k]
     setData(newData)
-    try {
-      await setDoc(doc(db, 'users', apiKey), newData)
-    } catch (error) {
-      console.error('Error deleting data:', error)
-    }
   }
 
   const handleLogout = async () => {
-    try {
-      await signOut(auth)
-      navigate('/login')
-    } catch (error) {
-      console.error('Error logging out:', error)
-    }
+    await supabase.auth.signOut()
+    navigate('/login')
   }
 
   return (
