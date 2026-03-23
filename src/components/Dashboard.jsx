@@ -1,18 +1,19 @@
 import { useState, useEffect } from 'react'
-import { supabase } from '@/integrations/supabase/client'
-import { useNavigate } from 'react-router-dom'
 
 function Dashboard() {
   const [apiKey, setApiKey] = useState('')
   const [data, setData] = useState({})
   const [key, setKey] = useState('')
   const [value, setValue] = useState('')
-  const navigate = useNavigate()
 
   useEffect(() => {
     const storedKey = localStorage.getItem('apiKey')
     if (storedKey) {
       setApiKey(storedKey)
+      const storedData = localStorage.getItem(`data_${storedKey}`)
+      if (storedData) {
+        setData(JSON.parse(storedData))
+      }
     }
   }, [])
 
@@ -21,6 +22,7 @@ function Dashboard() {
     setApiKey(newKey)
     localStorage.setItem('apiKey', newKey)
     setData({})
+    localStorage.removeItem(`data_${newKey}`)
   }
 
   const saveData = () => {
@@ -32,7 +34,9 @@ function Dashboard() {
       alert('Enter key and value')
       return
     }
-    setData(prev => ({ ...prev, [key]: value }))
+    const newData = { ...data, [key]: value }
+    setData(newData)
+    localStorage.setItem(`data_${apiKey}`, JSON.stringify(newData))
     setKey('')
     setValue('')
   }
@@ -41,18 +45,13 @@ function Dashboard() {
     const newData = { ...data }
     delete newData[k]
     setData(newData)
-  }
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut()
-    navigate('/login')
+    localStorage.setItem(`data_${apiKey}`, JSON.stringify(newData))
   }
 
   return (
     <div className="app">
       <header>
         <h1>Xodeon Cloud Dashboard</h1>
-        <button className="logout-btn" onClick={handleLogout}>Logout</button>
       </header>
       <main>
         <section>
@@ -90,5 +89,7 @@ function Dashboard() {
     </div>
   )
 }
+
+export default Dashboard
 
 export default Dashboard
